@@ -1,14 +1,26 @@
-# Publish both packages to npm when a GitHub release is published.
+# Publish both packages to npm.
 #
-# Needs a repository secret named NPM_TOKEN: an npm access token that may
-# publish these packages. Packages are published with provenance, which links
-# each version to the commit and workflow run that built it.
+# Runs when a GitHub release is published, or by hand from the Actions tab
+# (where "dry run" packs and checks the packages without publishing).
+#
+# Needs a repository secret named NPM_TOKEN: a granular npm access token with
+# "Read and write (publish and stage)" permission and "Bypass 2FA" enabled.
+# npm removes direct publishing by token in January 2027; before then, set up
+# trusted publishing for each package on npmjs.com and drop the token.
+#
+# Packages are published with provenance, which links each version to the
+# commit and workflow run that built it.
 name: Release
 
 on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Pack and check the packages without publishing
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -21,12 +33,17 @@ jobs:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version: 24
           cache: npm
           registry-url: https://registry.npmjs.org
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
-      - run: npm publish --workspaces --provenance --access public
+      - name: Check what would be published
+        if: ${{ inputs.dry_run }}
+        run: npm publish --workspaces --access public --dry-run
+      - name: Publish
+        if: ${{ !inputs.dry_run }}
+        run: npm publish --workspaces --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
