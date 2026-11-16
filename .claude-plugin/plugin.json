@@ -1,0 +1,12 @@
+{
+  "name": "plumbline",
+  "version": "0.1.0",
+  "description": "A standard for client websites: SEO fundamentals, spam-resistant forms and design that does not look machine-made, with a checker that verifies it.",
+  "author": {
+    "name": "plumbline contributors"
+  },
+  "homepage": "https://github.com/dub88/jubilant-happiness",
+  "repository": "https://github.com/dub88/jubilant-happiness",
+  "license": "MIT",
+  "keywords": ["seo", "web", "forms", "design", "quality"]
+}

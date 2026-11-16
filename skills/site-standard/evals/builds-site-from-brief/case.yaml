@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: builds-site-from-brief
+expected_outcome: |
+  A four-page static site in site/ that uses only the facts in the brief, has
+  complete SEO fundamentals (titles, descriptions, canonicals, Open Graph,
+  sitemap, robots.txt, structured data), contains nothing invented or
+  placeholder, and whose author says plainly what is still missing (photos).
+context:
+  scaffold_script: place-files.sh

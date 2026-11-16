@@ -2,18 +2,35 @@
 
 A standard for small-business and client websites, a checker that enforces it, and drop-in parts that make sites pass.
 
-> **Status: early.** The checker, its SEO, form and slop rules, and the form guard work today. The coding-agent skill is planned (see [Roadmap](#roadmap)). "plumbline" is a working name.
+> **Status: early.** The checker, its SEO, form and slop rules, the form guard and the coding-agent skill all work today. Nothing is published to npm yet. "plumbline" is a working name.
 
 | Part | What it is |
 |---|---|
 | [`packages/check`](packages/check) | The checker: a command line and GitHub Action that audit a site against the rules below. |
 | [`packages/forms`](packages/forms) | A form guard: spam screening for contact forms with no third-party service. |
+| [`skills/site-standard`](skills/site-standard) | A skill for coding agents: the standard written down, including the design judgement the checker cannot enforce. |
 
 ## Why
 
 Client sites tend to fail in the same few ways: titles and descriptions the wrong length, missing Open Graph tags, links that bounce through redirects, contact forms that bots walk straight through, and design that looks machine-made. These problems are usually found by a paid audit after the site is live, then fixed by hand, one site at a time.
 
 plumbline moves that check into the pull request. It crawls the preview deployment, compares it with production, and fails only on problems the change introduced. Each finding names the rule, the page, the fix and, where it can, the source file and line, so a person or a coding agent can fix it in the same pull request.
+
+## Use it with a coding agent
+
+The quickest way to apply the standard is to give it to the agent that builds the site. The skill tells the agent to gather the business's real details first, build to the standard, run the checker and fix what it finds, and say plainly what is still missing.
+
+In Claude Code:
+
+```text
+/plugin install plumbline --marketplace dub88/jubilant-happiness
+```
+
+On older versions, run `/plugin marketplace add dub88/jubilant-happiness` and then `/plugin install plumbline@plumbline`. The skill loads on its own when you work on a business or client site, or you can call it with `/plumbline:site-standard`.
+
+For other agents, copy [`skills/site-standard`](skills/site-standard) into the project (for Claude Code without the plugin, into `.claude/skills/`), or add [`AGENTS-snippet.md`](skills/site-standard/assets/AGENTS-snippet.md) to the site's `AGENTS.md`.
+
+The skill has three references that are also readable on their own: [SEO fundamentals](skills/site-standard/references/seo.md), [forms](skills/site-standard/references/forms.md) and [design and copy](skills/site-standard/references/design.md).
 
 ## Quick start
 
@@ -241,8 +258,9 @@ Mechanical tells of a site that was generated or started from a template and nev
 
 ## Roadmap
 
-1. **Agent skill.** A coding-agent skill and `AGENTS.md` pack that teaches the standard, including the design judgement the checker cannot enforce, so sites are built to pass and the checker confirms it.
-2. **Pull request comments and an npm release.**
+1. **An npm release**, so the checker runs with `npx` and the form guard installs as a package.
+2. **Pull request comments** from the GitHub Action.
+3. **More test cases for the skill**, including a framework project and a site with a form.
 
 ## Development
 

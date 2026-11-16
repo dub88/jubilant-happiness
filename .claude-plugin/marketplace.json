@@ -1,0 +1,14 @@
+{
+  "name": "plumbline",
+  "description": "The plumbline site standard for coding agents.",
+  "owner": {
+    "name": "plumbline contributors"
+  },
+  "plugins": [
+    {
+      "name": "plumbline",
+      "source": "./",
+      "description": "Build and review client websites to the plumbline standard, and verify them with its checker."
+    }
+  ]
+}

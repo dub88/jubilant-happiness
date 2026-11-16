@@ -16,6 +16,16 @@ Checks run in this order, cheapest first.
 
 Blocks are reserved for things a real visitor never does. Content checks only flag, so a genuine enquiry is never thrown away because it contained a link. Silent drops answer with your normal success body, because telling a scraper which check it tripped teaches it to get past that check.
 
+## Installing
+
+The package is not on npm yet. Until it is, copy the built files into your site with the script in this repository:
+
+```sh
+skills/site-standard/scripts/vendor-forms.sh path/to/your-site/src/lib/plumbline-forms
+```
+
+and import from that folder (`.../plumbline-forms/index.js` and `.../plumbline-forms/client.js`) where the examples below say `@plumbline/forms`.
+
 ## Server
 
 ```ts

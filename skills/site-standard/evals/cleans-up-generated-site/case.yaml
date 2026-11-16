@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: cleans-up-generated-site
+expected_outcome: |
+  The same three-page site with its invented and placeholder content removed
+  or replaced by the real details, complete SEO fundamentals added, and a
+  final message that says what was removed and what the client still needs
+  to supply.
+context:
+  scaffold_script: place-files.sh
