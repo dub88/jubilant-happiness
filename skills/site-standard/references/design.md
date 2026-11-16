@@ -56,7 +56,7 @@ Type does most of the work on a page that is mostly words, so choose it delibera
 - **Two families at most**, often one. Contrast comes from size and weight.
 - **Set a real scale.** A few sizes with clear steps between them (for example 16, 20, 28, 44 pixels). Timid differences between heading levels make a page look flat.
 - **Body text of 16 to 18 pixels** with line height around 1.5; headings tighter. Avoid light grey text on white; it is the most common readability failure.
-- **Load fonts properly**: self-host or use the framework's font loader, limit the weights, and set a sensible fallback so text is visible while the font loads.
+- **A good system font stack is a legitimate choice**, and often the right one for a small site: it loads instantly and looks native. Reach for a webfont when the business has brand type or the files are already in the project, then load it properly (self-hosted or through the framework's font loader, few weights, a sensible fallback). Do not download font files on your own initiative; ask.
 
 ## 5. Colour
 
@@ -85,7 +85,7 @@ These are the details that show whether someone finished the job:
 
 - the business's own favicon and a share image
 - a footer with the real name, address, phone and hours, matching the structured data exactly
-- the copyright year generated from the date, not typed
+- a copyright year that cannot go stale: generated when the site is built, or, on a hand-written static site, left out altogether (a notice needs no year)
 - social icons only for profiles that exist, linking to those profiles
 - a 404 page that helps (a way home, the phone number)
 - no placeholder text, starter content or commented-out template blocks

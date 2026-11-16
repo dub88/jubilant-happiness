@@ -12,7 +12,7 @@ Framework APIs for metadata change between versions. The requirements below are 
 
 **Canonical link.** `<link rel="canonical">` with the page's own full address on the production host. It tells search engines which URL is the real one when the same page is reachable several ways.
 
-**Open Graph.** `og:title`, `og:type`, `og:image` and `og:url`, on every page. Without `og:image` and `og:url` a link pasted into a chat or social post has no preview. `og:url` must match the canonical URL. The image should be a real photo or the logo on a plain ground, at least 1200 pixels wide, referenced by its full address.
+**Open Graph.** `og:title`, `og:type`, `og:image` and `og:url`, on every page. Without `og:image` and `og:url` a link pasted into a chat or social post has no preview. `og:url` must match the canonical URL. The image should be a real photo or the logo on a plain ground, at least 1200 pixels wide, referenced by its full address. When there is neither photo nor logo, make a plain one (the business name, and perhaps the town, set in the site's type on its main colour) and tell the user it is a stand-in.
 
 **Headings.** One `<h1>` that says what the page is about, then `<h2>` and below in order. Choose heading levels for structure, never for size.
 
@@ -28,15 +28,17 @@ Pages that should not appear in search (admin, thank-you pages) carry `<meta nam
 
 Keep the production origin in one constant or environment variable and build every absolute URL from it. Scattered string literals are how the wrong host creeps in.
 
+If you do not know how the host treats addresses, use a form that works everywhere without a redirect: either link to the files as they are (`/menu.html`), or give each page its own folder (`/menu/index.html`, linked as `/menu/`). Do not link to `/menu` with no extension and no slash unless you know the host serves it. Tell the user which you chose.
+
 **robots.txt** at the root, allowing crawling and naming the sitemap with its full address.
 
 **sitemap.xml** listing every page that should be indexed, each with its final address: no redirects, no `noindex` pages, no pages that do not exist. Generate it from the same list of routes the site is built from, so it cannot drift.
 
 **Structured data.** A JSON-LD block on the home page describing the business. Use the most specific schema.org type that fits (`Bakery`, `Plumber`, `RealEstateAgent`, `Dentist`; fall back to `LocalBusiness`). Include only facts that are also visible on the site: name, address, phone, opening hours, logo, URL. Leave out `sameAs` unless the business has real profiles to list, and never add ratings or reviews that are not shown on the page. Search engines treat structured data that contradicts the page as spam.
 
-Name, address and phone should be written identically everywhere they appear: page footer, contact page, structured data. Inconsistent details weaken local search results.
+Name, address and phone should be written identically everywhere a visitor reads them: page header, footer, contact page. Inconsistent details weaken local search results. The machine-readable forms are expected to differ: `tel:` links and the structured data's `telephone` use the international format (`+44...`, `+1...`) while the page shows the number the way local customers dial it.
 
-**Favicon.** The business's own, not the framework's default.
+**Favicon.** The business's own, not the framework's default. Without a logo, an initial or simple mark in the site's colours, as an SVG, is a reasonable stand-in; say that it is one.
 
 ## Framework notes
 

@@ -1,7 +1,7 @@
 ---
 name: site-standard
 description: Build, edit and review small-business and client websites so they have sound SEO fundamentals, contact forms that resist spam, and design and copy that do not look machine-made, then verify the result with the plumbline checker. Use this whenever you create or change a marketing site, landing page, brochure site, portfolio or any public page for a business or client, in any stack (Next.js, Astro, plain HTML, anything else); when adding or fixing a contact form; when the task mentions SEO, meta tags, Open Graph, sitemaps, canonical URLs or structured data; when a site looks generic or AI-generated; and before you call any such site finished, even if the user never mentions SEO or quality.
-allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/check.sh *), Bash(${CLAUDE_SKILL_DIR}/scripts/vendor-forms.sh *)
+allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/check.sh *), Bash(${CLAUDE_SKILL_DIR}/scripts/vendor-forms.sh *), Bash(node ${CLAUDE_SKILL_DIR}/scripts/screenshot.cjs *)
 ---
 
 # Site standard
@@ -47,7 +47,7 @@ The essentials, for when you are making a small change and do not need the full 
 
 ### 3. Check the result
 
-Run the checker against the site as it is actually served. Start the dev or preview server first, then:
+Run the checker against the site as it is actually served. Start the dev or preview server first (for a folder of plain HTML, `python3 -m http.server 3000 --directory site` is enough), then:
 
 ```sh
 ${CLAUDE_SKILL_DIR}/scripts/check.sh http://localhost:3000 --canonical-origin https://www.example.com --src .
@@ -60,9 +60,15 @@ ${CLAUDE_SKILL_DIR}/scripts/check.sh http://localhost:3000 --canonical-origin ht
 
 The first run builds the checker and takes a little longer. `check.sh rules` lists every rule.
 
-Each finding names the rule, the pages, the fix, and where possible the source file. Fix the errors and warnings, run it again, and repeat until it reports no problems. Exit code 0 means clean, 1 means findings remain, 2 means the site could not be reached.
+Each finding names the rule, the pages, the fix, and where possible the source file. Fix the errors and warnings, run it again, and repeat until it reports no problems. Exit code 0 means clean, 1 means findings remain, 2 means the site could not be reached. To learn what the checker makes of something, run it; there is no need to read its source.
 
-Then look at the page yourself. If you can take a screenshot, do so at a phone width and a desktop width and compare what you see against `references/design.md`. The checker reads text and markup; it cannot see that a layout is cramped or that a page looks like every other page.
+Then look at the page yourself, because the checker reads text and markup and cannot see that a layout is cramped or that a page looks like every other page:
+
+```sh
+node ${CLAUDE_SKILL_DIR}/scripts/screenshot.cjs http://localhost:3000 /tmp/shots
+```
+
+This writes a phone-width and a desktop-width screenshot. View them and compare what you see against the questions at the end of `references/design.md`. One round is usually enough; take them again only after a change to layout. If the script reports that Playwright is not installed, do not spend time on other ways of driving a browser: skip the screenshots and say in your report that the pages were not checked by eye.
 
 ### 4. Report honestly
 
