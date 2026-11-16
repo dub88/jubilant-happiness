@@ -1,6 +1,7 @@
 import { crawl, type CrawlOptions } from './crawl.ts';
+import { probeForms } from './probe.ts';
 import { packs } from './rules/index.ts';
-import { DEFAULT_THRESHOLDS, type Finding, type Severity, type Thresholds } from './types.ts';
+import { DEFAULT_THRESHOLDS, type Finding, type FormTarget, type Severity, type Thresholds } from './types.ts';
 
 export type RuleSetting = 'off' | Severity;
 
@@ -10,6 +11,10 @@ export interface AuditOptions extends CrawlOptions {
   rules?: Record<string, RuleSetting>;
   /** Paths whose findings are dropped. A trailing * matches any path with that prefix. */
   ignorePaths?: string[];
+  /** Form endpoints whose spam defences should be probed. */
+  forms?: FormTarget[];
+  /** The secret the site's form guard was given; without it forms are not probed. */
+  probeSecret?: string;
 }
 
 export interface AuditResult {
@@ -33,7 +38,16 @@ function ignored(path: string, patterns: string[]): boolean {
 
 export async function audit(options: AuditOptions): Promise<AuditResult> {
   const started = Date.now();
-  const site = await crawl(options);
+  const forms = options.forms ?? [];
+  const formPages = forms.flatMap((form) => (form.page ? [form.page] : []));
+  const site = await crawl({ ...options, extraPaths: [...(options.extraPaths ?? []), ...formPages] });
+  if (forms.length > 0) {
+    const probe: Parameters<typeof probeForms>[1] = { forms };
+    if (options.probeSecret) probe.secret = options.probeSecret;
+    if (options.headers) probe.headers = options.headers;
+    if (options.timeoutMs) probe.timeoutMs = options.timeoutMs;
+    site.formProbes = await probeForms(site, probe);
+  }
   const thresholds = { ...DEFAULT_THRESHOLDS, ...options.thresholds };
   const ignorePaths = options.ignorePaths ?? [];
 

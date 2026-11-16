@@ -27,6 +27,9 @@ Options
                             Repeatable.
   --header <"name: value">  Extra request header for the audited site, e.g. a
                             preview-protection bypass token. Repeatable.
+  --form <path>             Form endpoint to probe, e.g. /api/contact. Needs the
+                            PLUMBLINE_PROBE_SECRET environment variable.
+                            Repeatable.
   --all                     With a baseline, also show problems already there.
   --json                    Print the results as JSON.
   --markdown <file>         Also write a Markdown report to this file.
@@ -59,6 +62,8 @@ async function auditSite(site: SiteConfig, headers: Record<string, string>, src:
     rules: site.rules,
     ignorePaths: site.ignorePaths,
     maxPages: site.maxPages,
+    forms: site.forms,
+    probeSecret: process.env.PLUMBLINE_PROBE_SECRET,
   };
   let canonicalOrigin = site.canonicalOrigin;
   let baseline: AuditResult | undefined;
@@ -85,6 +90,7 @@ async function check(argv: string[]): Promise<number> {
       'max-pages': { type: 'string' },
       ignore: { type: 'string', multiple: true },
       header: { type: 'string', multiple: true },
+      form: { type: 'string', multiple: true },
       all: { type: 'boolean', default: false },
       json: { type: 'boolean', default: false },
       markdown: { type: 'string' },
@@ -97,6 +103,7 @@ async function check(argv: string[]): Promise<number> {
   if (values.baseline) overrides.baseline = values.baseline;
   if (values['canonical-origin']) overrides.canonicalOrigin = values['canonical-origin'];
   if (values.ignore) overrides.ignorePaths = values.ignore;
+  if (values.form) overrides.forms = values.form.map((endpoint) => ({ endpoint }));
   const failOn = parseFailOn(values['fail-on']);
   if (failOn) overrides.failOn = failOn;
   if (values['max-pages'] !== undefined) {

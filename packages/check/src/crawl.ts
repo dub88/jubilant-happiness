@@ -1,6 +1,6 @@
 import { Fetcher } from './fetch.ts';
 import { parsePage } from './parse.ts';
-import type { FetchResult, PageData, Ref, UrlClass } from './types.ts';
+import type { FetchResult, FormProbe, PageData, Ref, UrlClass } from './types.ts';
 
 export interface CrawlOptions {
   /** Where to start. Redirects from this URL are followed to find the site's real origin. */
@@ -11,6 +11,8 @@ export interface CrawlOptions {
    */
   canonicalOrigin?: string;
   maxPages?: number;
+  /** Paths to read even if nothing links to them. */
+  extraPaths?: string[];
   headers?: Record<string, string>;
   concurrency?: number;
   timeoutMs?: number;
@@ -46,6 +48,8 @@ export class Site {
   readonly results = new Map<string, FetchResult>();
   /** URLs listed in sitemaps and on robots.txt Sitemap lines. */
   readonly sitemapRefs: Ref[] = [];
+  /** What probing the site's form endpoints found. Empty unless forms were configured. */
+  formProbes: FormProbe[] = [];
   robotsFound = false;
   sitemapFound = false;
   /** True when the page limit stopped the crawl before every page was read. */
@@ -160,6 +164,7 @@ export async function crawl(options: CrawlOptions): Promise<Site> {
   };
 
   enqueue(site.crawlOrigin + site.startKey);
+  for (const path of options.extraPaths ?? []) enqueue(new URL(path, site.crawlOrigin).href);
   await readRobotsAndSitemaps(site, fetcher, enqueue);
 
   while (queue.length > 0) {

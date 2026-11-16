@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { FailOn, RuleSetting } from './audit.ts';
-import type { Thresholds } from './types.ts';
+import type { FormTarget, Thresholds } from './types.ts';
 
 export const DEFAULT_CONFIG_FILE = 'plumbline.config.json';
 
@@ -15,6 +15,8 @@ export interface SiteSettings {
   thresholds?: Partial<Thresholds>;
   rules?: Record<string, RuleSetting>;
   ignorePaths?: string[];
+  /** Form endpoints to probe, e.g. [{ "endpoint": "/api/contact", "page": "/contact" }]. */
+  forms?: FormTarget[];
 }
 
 export interface SiteConfig extends SiteSettings {
@@ -64,6 +66,7 @@ export function resolveSites(config: Config, url: string | undefined, overrides:
     thresholds: { ...shared.thresholds, ...site.thresholds },
     rules: { ...shared.rules, ...site.rules },
     ignorePaths: [...(shared.ignorePaths ?? []), ...(site.ignorePaths ?? []), ...(overrides.ignorePaths ?? [])],
+    forms: [...(site.forms ?? shared.forms ?? []), ...(overrides.forms ?? [])],
   });
   if (url) return [merge({ url })];
   if (sites && sites.length > 0) return sites.map(merge);

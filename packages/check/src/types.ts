@@ -59,7 +59,35 @@ export interface PageData {
   lang?: string;
   jsonld: JsonLdBlock[];
   imagesMissingAlt: string[];
+  /** Names of the form controls on the page. */
+  inputNames: string[];
   refs: Ref[];
+}
+
+/** A form endpoint to probe, and optionally the page that shows the form. */
+export interface FormTarget {
+  endpoint: string;
+  page?: string;
+}
+
+/** The submissions a probe sends. Only "genuine" should get through. */
+export type ProbeScenario = 'genuine' | 'cross-site' | 'no-origin' | 'no-timer' | 'too-fast' | 'honeypot' | 'spam-content';
+
+export interface ProbeAnswer {
+  outcome: 'accept' | 'flag' | 'block';
+  reason?: string;
+  flags: string[];
+}
+
+export interface FormProbe extends FormTarget {
+  /** answered: the endpoint speaks the probe protocol. Otherwise nothing could be verified. */
+  status: 'answered' | 'no-secret' | 'unanswered';
+  /** Why the endpoint did not answer. */
+  detail?: string;
+  honeypotField?: string;
+  /** The fields the guard scans for spam text, as it reports them. */
+  messageFields?: string[];
+  answers: Partial<Record<ProbeScenario, ProbeAnswer>>;
 }
 
 export interface Finding {

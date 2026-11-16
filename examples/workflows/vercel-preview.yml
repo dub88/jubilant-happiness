@@ -28,3 +28,7 @@ jobs:
           baseline: https://www.example.com
           headers: |
             x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          # Optional: probe the contact form's spam defences. The site's form
+          # guard must be given the same secret (see packages/forms).
+          # forms: /api/contact
+          # probe-secret: ${{ secrets.PLUMBLINE_PROBE_SECRET }}

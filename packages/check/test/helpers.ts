@@ -1,7 +1,8 @@
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-export type Route = string | { status?: number; headers?: Record<string, string>; body?: string };
+export type Handler = (request: Request) => Response | Promise<Response>;
+export type Route = string | { status?: number; headers?: Record<string, string>; body?: string } | Handler;
 /** Routes may depend on the server's own origin, which is only known once it is listening. */
 export type Routes = (origin: string) => Record<string, Route>;
 
@@ -13,8 +14,22 @@ export interface TestSite {
 /** Serve an in-memory site on a free local port. Unknown paths answer 404. */
 export async function serve(routes: Routes): Promise<TestSite> {
   let table: Record<string, Route> = {};
-  const server = createServer((request, response) => {
+  const server = createServer(async (request, response) => {
     const route = table[request.url ?? '/'];
+    if (typeof route === 'function') {
+      // Hand the route a web Request, as a framework's route handler would get.
+      const chunks: Buffer[] = [];
+      for await (const chunk of request) chunks.push(chunk as Buffer);
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(request.headers)) {
+        if (typeof value === 'string') headers.set(name, value);
+      }
+      const init: RequestInit = { method: request.method ?? 'GET', headers };
+      if (chunks.length > 0) init.body = Buffer.concat(chunks);
+      const answer = await route(new Request(`http://${request.headers.host}${request.url}`, init));
+      response.writeHead(answer.status, Object.fromEntries(answer.headers)).end(await answer.text());
+      return;
+    }
     if (route === undefined) {
       response.writeHead(404, { 'content-type': 'text/html' }).end('<h1>Not found</h1>');
       return;

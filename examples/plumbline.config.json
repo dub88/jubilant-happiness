@@ -8,7 +8,11 @@
     "titleMax": 65
   },
   "sites": [
-    { "name": "Bakery", "url": "https://www.example-bakery.com" },
+    {
+      "name": "Bakery",
+      "url": "https://www.example-bakery.com",
+      "forms": [{ "endpoint": "/api/contact", "page": "/contact" }]
+    },
     { "name": "Plumber", "url": "https://www.example-plumber.com", "ignorePaths": ["/quote/thanks"] }
   ]
 }

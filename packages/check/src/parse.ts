@@ -128,6 +128,10 @@ export function parsePage(key: string, pageUrl: string, html: string, headerNoin
     h1: root.querySelectorAll('h1').map((element) => clean(element.text)),
     jsonld,
     imagesMissingAlt,
+    inputNames: root
+      .querySelectorAll('input, textarea, select')
+      .map((element) => element.getAttribute('name') ?? '')
+      .filter(Boolean),
     refs,
   };
   const description = meta.get('description');

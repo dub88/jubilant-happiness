@@ -30,6 +30,12 @@ inputs:
   headers:
     description: 'Extra request headers for the audited site, one "name: value" per line, e.g. a preview-protection bypass token.'
     required: false
+  forms:
+    description: Form endpoints to probe, one path per line, e.g. /api/contact. Needs probe-secret.
+    required: false
+  probe-secret:
+    description: The secret the site's form guard was given, so form probes are answered and nothing is delivered.
+    required: false
   config:
     description: Path to a plumbline config file.
     required: false
@@ -54,6 +60,8 @@ runs:
         PLUMBLINE_IGNORE: ${{ inputs.ignore }}
         PLUMBLINE_HEADERS: ${{ inputs.headers }}
         PLUMBLINE_CONFIG: ${{ inputs.config }}
+        PLUMBLINE_FORMS: ${{ inputs.forms }}
+        PLUMBLINE_PROBE_SECRET: ${{ inputs.probe-secret }}
       run: |
         args=(check)
         [ -n "$PLUMBLINE_URL" ] && args+=("$PLUMBLINE_URL")
@@ -69,6 +77,9 @@ runs:
         while IFS= read -r line; do
           [ -n "$line" ] && args+=(--header "$line")
         done <<< "$PLUMBLINE_HEADERS"
+        while IFS= read -r line; do
+          [ -n "$line" ] && args+=(--form "$line")
+        done <<< "$PLUMBLINE_FORMS"
 
         report="$RUNNER_TEMP/plumbline-report.md"
         code=0

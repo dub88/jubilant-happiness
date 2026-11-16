@@ -2,7 +2,12 @@
 
 A standard for small-business and client websites, a checker that enforces it, and drop-in parts that make sites pass.
 
-> **Status: early.** The checker and its SEO rules work today. The form-spam and design-slop rules, the form handler and the coding-agent skill are planned (see [Roadmap](#roadmap)). "plumbline" is a working name.
+> **Status: early.** The checker, its SEO and form rules, and the form guard work today. The design-slop rules and the coding-agent skill are planned (see [Roadmap](#roadmap)). "plumbline" is a working name.
+
+| Part | What it is |
+|---|---|
+| [`packages/check`](packages/check) | The checker: a command line and GitHub Action that audit a site against the rules below. |
+| [`packages/forms`](packages/forms) | A form guard: spam screening for contact forms with no third-party service. |
 
 ## Why
 
@@ -64,6 +69,7 @@ A preview deployment lives on a different host from the one its canonical links,
 | `--max-pages <n>` | Stop reading new pages after `n` (default 200). |
 | `--ignore <path>` | Drop findings on a path; a trailing `*` matches a prefix. Repeatable. |
 | `--header "name: value"` | Extra request header for the audited site. Repeatable. Not sent to the baseline. |
+| `--form <path>` | Form endpoint to probe, e.g. `/api/contact`. Repeatable. See [Form spam](#form-spam). |
 | `--all` | With a baseline, also show the problems production already has. |
 | `--json` | Print results as JSON. |
 | `--markdown <file>` | Also write a Markdown report. |
@@ -101,7 +107,37 @@ jobs:
 
 The `headers` line is only needed when the project uses Vercel Deployment Protection. Without it a protected preview answers 401 and the audit stops with exit code 2.
 
-Inputs mirror the command-line options: `url`, `baseline`, `canonical-origin`, `src` (default `.`), `fail-on`, `max-pages`, `ignore` and `headers` (one per line) and `config`.
+Inputs mirror the command-line options: `url`, `baseline`, `canonical-origin`, `src` (default `.`), `fail-on`, `max-pages`, `config`, and `ignore`, `headers` and `forms` (one per line). `probe-secret` carries the form probe secret.
+
+## Form spam
+
+Contact forms on small sites attract bots within days. [`@plumbline/forms`](packages/forms) screens submissions with the checks a real visitor never trips (a honeypot field, a same-site check and a minimum fill time), flags sales pitches without discarding them, and leaves a paid bot-detection service as an optional last step so it is only billed for submissions the free checks let through.
+
+```ts
+import { createFormGuard } from '@plumbline/forms';
+
+const guard = createFormGuard({ probeSecret: process.env.PLUMBLINE_PROBE_SECRET });
+
+export async function POST(request: Request) {
+  const result = await guard.check(request);
+  if (!result.ok) return result.response; // blocked, or a probe was answered
+
+  const { fields, flagged, allowConfirmation } = result;
+  // Validate fields, then deliver. Prefix the subject when flagged, and only
+  // email a confirmation to the sender when allowConfirmation is true.
+  return Response.json({ ok: true });
+}
+```
+
+The checker can then verify those defences on every preview. Tell it the endpoint and give it the same secret:
+
+```sh
+PLUMBLINE_PROBE_SECRET=... node packages/check/dist/cli.js check https://www.example.com --form /api/contact
+```
+
+It sends seven crafted submissions (a normal one, one from another site, one with no origin, one with no timer, one sent too fast, one that fills the honeypot, one sales pitch) and reports any the guard judges wrongly. A guard that recognises the secret runs its checks, delivers nothing and returns its verdict, so probing never sends a real enquiry. The first request has an empty body; an endpoint that does not answer it with a verdict is reported as unverified and receives nothing else.
+
+In a config file, `"forms": [{ "endpoint": "/api/contact", "page": "/contact" }]` also checks that the page showing the form contains the fields the guard expects.
 
 ## Many sites, one config
 
@@ -157,6 +193,22 @@ Every rule comes from a problem found on a real site. `plumbline rules` prints t
 
 Pages marked `noindex`, and pages whose canonical link points elsewhere, are exempt from the content rules (titles, descriptions, Open Graph, headings).
 
+### Forms
+
+These run only for form endpoints you configure, and need the probe secret.
+
+| Rule | Severity | What it catches |
+|---|---|---|
+| `form-probe-unanswered` | warning | A configured endpoint could not be probed, so its defences are unverified. |
+| `form-blocks-genuine` | error | A normal submission from the site's own page is blocked or flagged. |
+| `form-accepts-cross-site` | error | A submission posted from another site is accepted. |
+| `form-accepts-no-origin` | error | A submission with no Origin or Referer, as a script sends, is accepted. |
+| `form-accepts-instant` | error | A submission with no timer, or sent faster than a person can type, is accepted. |
+| `form-accepts-honeypot` | error | A submission that filled in the honeypot field is accepted. |
+| `form-misses-spam` | warning | An obvious sales pitch with links is not flagged. |
+| `form-honeypot-not-rendered` | warning | The form's page does not contain the honeypot field. |
+| `form-message-field-missing` | warning | The endpoint scans a field for spam text that the form's page does not have. |
+
 ### What the checker does not do yet
 
 - It reads the HTML the server sends and does not run JavaScript, so a site rendered entirely in the browser will look empty to it.
@@ -165,10 +217,9 @@ Pages marked `noindex`, and pages whose canonical link points elsewhere, are exe
 
 ## Roadmap
 
-1. **Forms pack and form handler.** A drop-in, spam-resistant form handler for Next.js, Vercel functions and Astro (origin check, time trap, honeypot, content flags, no confirmation email to unverified addresses), plus rules that probe a site's form endpoint for the same defences.
-2. **Slop pack.** Rules for mechanical tells of a machine-made site: a default framework favicon or title, placeholder text, stock phrases, emoji used as icons, a stale copyright year.
-3. **Agent skill.** A coding-agent skill and `AGENTS.md` pack that teaches the standard, so sites are built to pass and the checker confirms it.
-4. **Pull request comments and an npm release.**
+1. **Slop pack.** Rules for mechanical tells of a machine-made site: a default framework favicon or title, placeholder text, stock phrases, emoji used as icons, a stale copyright year.
+2. **Agent skill.** A coding-agent skill and `AGENTS.md` pack that teaches the standard, so sites are built to pass and the checker confirms it.
+3. **Pull request comments and an npm release.**
 
 ## Development
 
