@@ -1,9 +1,24 @@
 {
   "name": "@plumbline/forms",
   "version": "0.1.0",
-  "private": true,
   "description": "Spam screening for contact forms: same-site check, honeypot, time trap and content flags, with no third-party service.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dub88/jubilant-happiness.git",
+    "directory": "packages/forms"
+  },
+  "homepage": "https://github.com/dub88/jubilant-happiness#readme",
+  "bugs": "https://github.com/dub88/jubilant-happiness/issues",
+  "keywords": [
+    "forms",
+    "spam",
+    "honeypot",
+    "contact-form",
+    "anti-spam",
+    "nextjs",
+    "astro"
+  ],
   "type": "module",
   "exports": {
     ".": {
@@ -21,7 +36,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "node --test \"test/**/*.test.ts\""
+    "test": "node --test \"test/**/*.test.ts\"",
+    "prepack": "npm run build"
   },
   "engines": {
     "node": ">=20"
@@ -29,5 +45,8 @@
   "devDependencies": {
     "@types/node": "^22.20.5",
     "typescript": "^7.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
