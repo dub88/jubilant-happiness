@@ -86,7 +86,7 @@ export const seoRules: Rule[] = [
     id: 'title-length',
     severity: 'warning',
     summary: 'Title is longer or shorter than search results display well.',
-    check: (site, { titleMin, titleMax }) => {
+    check: (site, { thresholds: { titleMin, titleMax } }) => {
       const problems: Problem[] = [];
       for (const page of contentPages(site)) {
         const title = page.titles[0];
@@ -128,7 +128,7 @@ export const seoRules: Rule[] = [
     id: 'description-length',
     severity: 'warning',
     summary: 'Meta description is longer or shorter than search results display well.',
-    check: (site, { descriptionMin, descriptionMax }) => {
+    check: (site, { thresholds: { descriptionMin, descriptionMax } }) => {
       const problems: Problem[] = [];
       for (const page of contentPages(site)) {
         const description = page.description;

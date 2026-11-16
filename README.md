@@ -2,7 +2,7 @@
 
 A standard for small-business and client websites, a checker that enforces it, and drop-in parts that make sites pass.
 
-> **Status: early.** The checker, its SEO and form rules, and the form guard work today. The design-slop rules and the coding-agent skill are planned (see [Roadmap](#roadmap)). "plumbline" is a working name.
+> **Status: early.** The checker, its SEO, form and slop rules, and the form guard work today. The coding-agent skill is planned (see [Roadmap](#roadmap)). "plumbline" is a working name.
 
 | Part | What it is |
 |---|---|
@@ -155,7 +155,7 @@ List every site you look after in `plumbline.config.json` and run `plumbline che
 }
 ```
 
-`rules` turns a rule `off` or sets it to `warning` or `error`. `thresholds` accepts `titleMin`, `titleMax`, `descriptionMin` and `descriptionMax`.
+`rules` turns a rule `off` or sets it to `warning` or `error`. `thresholds` accepts `titleMin`, `titleMax`, `descriptionMin`, `descriptionMax` and `stockPhrases`.
 
 ## Rules
 
@@ -209,17 +209,40 @@ These run only for form endpoints you configure, and need the probe secret.
 | `form-honeypot-not-rendered` | warning | The form's page does not contain the honeypot field. |
 | `form-message-field-missing` | warning | The endpoint scans a field for spam text that the form's page does not have. |
 
+### Slop
+
+Mechanical tells of a site that was generated or started from a template and never finished. These catch what can be detected reliably; they do not judge taste.
+
+| Rule | Severity | What it catches |
+|---|---|---|
+| `default-metadata` | error | The title or description is a starter default ("Create Next App"). |
+| `starter-content` | error | The page still shows a framework's starter content. |
+| `default-favicon` | error | The favicon is the default Next.js, Vite, SvelteKit or Create React App icon. |
+| `favicon-missing` | warning | No favicon loads. |
+| `placeholder-text` | error | Lorem ipsum, "[Your Company Name]", "tagline goes here". |
+| `unrendered-template` | error | "{{ name }}" or "[object Object]" on the page, or "undefined" in a title. |
+| `placeholder-contact` | error | An example.com address, a 555 phone number, "Anytown". |
+| `placeholder-image` | error | An image from a placeholder service, or a file named placeholder. |
+| `generic-alt` | warning | Alt text that is a filler word or a file name ("image", "hero.jpg"). |
+| `dead-link` | warning | A link that goes nowhere (`href="#"`, empty, or `javascript:`). |
+| `placeholder-social-link` | warning | A social link to the network's home page, not to a profile. |
+| `stock-phrases` | warning | Three or more stock marketing phrases on one page ("elevate your", "look no further"). |
+| `emoji-icons` | warning | Three or more emoji used as icons or to decorate headings. |
+| `stale-copyright` | warning | The copyright year is in the past. |
+
+`stock-phrases` and `emoji-icons` are judgement calls; turn them off in the config if they do not suit a site. The `stockPhrases` threshold sets how many phrases a page may use.
+
 ### What the checker does not do yet
 
 - It reads the HTML the server sends and does not run JavaScript, so a site rendered entirely in the browser will look empty to it.
 - It checks internal links only; external links are not requested.
 - It does not judge content quality, keywords, page speed or backlinks.
+- It does not look at layout, colour or typography; the slop rules read text and markup only.
 
 ## Roadmap
 
-1. **Slop pack.** Rules for mechanical tells of a machine-made site: a default framework favicon or title, placeholder text, stock phrases, emoji used as icons, a stale copyright year.
-2. **Agent skill.** A coding-agent skill and `AGENTS.md` pack that teaches the standard, so sites are built to pass and the checker confirms it.
-3. **Pull request comments and an npm release.**
+1. **Agent skill.** A coding-agent skill and `AGENTS.md` pack that teaches the standard, including the design judgement the checker cannot enforce, so sites are built to pass and the checker confirms it.
+2. **Pull request comments and an npm release.**
 
 ## Development
 

@@ -2,6 +2,12 @@ import { parse, type HTMLElement } from 'node-html-parser';
 import type { JsonLdBlock, PageData, Ref, RefKind } from './types.ts';
 
 const SKIPPED_SCHEMES = /^(mailto|tel|sms|javascript|data|blob|about):/i;
+const SCRIPTED_CONTROL = ['role', 'onclick', 'aria-controls', 'aria-expanded', 'aria-haspopup', 'data-toggle', 'data-bs-toggle'];
+
+/** One emoji as shown to a reader: a pictograph with optional skin tone, joined sequences included. */
+const EMOJI = String.raw`(?:\p{Emoji_Presentation}|\p{Extended_Pictographic}\uFE0F)\p{Emoji_Modifier}?(?:\u200D(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})\uFE0F?\p{Emoji_Modifier}?)*`;
+const EMOJI_ONLY = new RegExp(`^(?:${EMOJI}){1,2}$`, 'u');
+const LEADING_EMOJI = new RegExp(`^${EMOJI}`, 'u');
 
 function clean(text: string | undefined): string {
   return (text ?? '').replace(/\s+/g, ' ').trim();
@@ -113,6 +119,53 @@ export function parsePage(key: string, pageUrl: string, html: string, headerNoin
     }
   }
 
+  const images: PageData['images'] = [];
+  for (const element of root.querySelectorAll('img')) {
+    const src = element.getAttribute('src');
+    if (!src) continue;
+    const alt = element.getAttribute('alt');
+    images.push(alt === undefined ? { src } : { src, alt: clean(alt) });
+  }
+
+  const deadLinks: string[] = [];
+  for (const element of root.querySelectorAll('a')) {
+    const href = element.getAttribute('href')?.trim();
+    if (href === undefined || !(href === '' || href === '#' || href === '#!' || /^javascript:/i.test(href))) continue;
+    // A link that script turns into a control is not a link that was never filled in.
+    if (SCRIPTED_CONTROL.some((attribute) => element.hasAttribute(attribute))) continue;
+    deadLinks.push(clean(element.text) || clean(element.getAttribute('aria-label')) || '(no text)');
+  }
+
+  const icons: string[] = [];
+  for (const element of root.querySelectorAll('link[rel]')) {
+    if (!/(^|\s)icon(\s|$)/i.test(element.getAttribute('rel') ?? '')) continue;
+    const href = element.getAttribute('href')?.trim();
+    if (!href) continue;
+    const url = /^data:/i.test(href) ? 'data:' : resolve(href, base);
+    if (url) icons.push(url);
+  }
+
+  const emojiIcons: string[] = [];
+  for (const element of root.querySelectorAll('*')) {
+    const text = element.text.trim();
+    if (!text || text.length > 200 || insideSvg(element)) continue;
+    const tag = element.rawTagName?.toLowerCase() ?? '';
+    if (element.children.length === 0 && EMOJI_ONLY.test(text)) emojiIcons.push(text);
+    else if (/^h[1-4]$/.test(tag)) {
+      const leading = text.match(LEADING_EMOJI)?.[0];
+      if (leading) emojiIcons.push(leading);
+    }
+  }
+
+  const body = root.querySelector('body') ?? root;
+  // Code samples are left out too: they legitimately show template syntax and example addresses.
+  for (const element of body.querySelectorAll('script, style, noscript, template, svg, pre, code')) element.remove();
+  const text = body.structuredText
+    .split('\n')
+    .map((line) => line.replace(/[^\S\n]+/g, ' ').trim())
+    .filter(Boolean)
+    .join('\n');
+
   const robots = `${meta.get('robots') ?? ''},${meta.get('googlebot') ?? ''}`.toLowerCase();
   const lang = clean(root.querySelector('html')?.getAttribute('lang'));
 
@@ -132,6 +185,11 @@ export function parsePage(key: string, pageUrl: string, html: string, headerNoin
       .querySelectorAll('input, textarea, select')
       .map((element) => element.getAttribute('name') ?? '')
       .filter(Boolean),
+    text,
+    images,
+    deadLinks,
+    icons,
+    emojiIcons,
     refs,
   };
   const description = meta.get('description');

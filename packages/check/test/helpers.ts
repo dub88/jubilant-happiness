@@ -6,6 +6,9 @@ export type Route = string | { status?: number; headers?: Record<string, string>
 /** Routes may depend on the server's own origin, which is only known once it is listening. */
 export type Routes = (origin: string) => Record<string, Route>;
 
+/** Served at /favicon.ico unless a site defines its own, so fixture sites have an icon like real ones do. */
+const FAVICON: Route = { headers: { 'content-type': 'image/x-icon' }, body: 'a favicon that is not a framework default' };
+
 export interface TestSite {
   origin: string;
   close(): Promise<void>;
@@ -15,7 +18,7 @@ export interface TestSite {
 export async function serve(routes: Routes): Promise<TestSite> {
   let table: Record<string, Route> = {};
   const server = createServer(async (request, response) => {
-    const route = table[request.url ?? '/'];
+    const route = table[request.url ?? '/'] ?? (request.url === '/favicon.ico' ? FAVICON : undefined);
     if (typeof route === 'function') {
       // Hand the route a web Request, as a framework's route handler would get.
       const chunks: Buffer[] = [];

@@ -61,7 +61,23 @@ export interface PageData {
   imagesMissingAlt: string[];
   /** Names of the form controls on the page. */
   inputNames: string[];
+  /** The text a visitor reads: the body without scripts, styles, inline SVG or code samples. Block elements end a line. */
+  text: string;
+  images: { src: string; alt?: string }[];
+  /** The text of each link that goes nowhere (href="#", empty, or a javascript: URL). */
+  deadLinks: string[];
+  /** Favicon URLs the page declares. A data: URI is recorded as "data:". */
+  icons: string[];
+  /** Emoji that stand alone in an element or open a heading, in page order. */
+  emojiIcons: string[];
   refs: Ref[];
+}
+
+/** A favicon the site declares (or /favicon.ico), and what fetching it found. */
+export interface IconResult {
+  url: string;
+  status: number;
+  sha256?: string;
 }
 
 /** A form endpoint to probe, and optionally the page that shows the form. */
@@ -113,6 +129,8 @@ export interface Thresholds {
   titleMax: number;
   descriptionMin: number;
   descriptionMax: number;
+  /** How many different stock marketing phrases a page may use before it is reported. */
+  stockPhrases: number;
 }
 
 /**
@@ -125,4 +143,5 @@ export const DEFAULT_THRESHOLDS: Thresholds = {
   titleMax: 70,
   descriptionMin: 100,
   descriptionMax: 160,
+  stockPhrases: 3,
 };

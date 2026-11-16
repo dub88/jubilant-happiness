@@ -1,4 +1,5 @@
 import { crawl, type CrawlOptions } from './crawl.ts';
+import { inspectIcons } from './icons.ts';
 import { probeForms } from './probe.ts';
 import { packs } from './rules/index.ts';
 import { DEFAULT_THRESHOLDS, type Finding, type FormTarget, type Severity, type Thresholds } from './types.ts';
@@ -15,6 +16,8 @@ export interface AuditOptions extends CrawlOptions {
   forms?: FormTarget[];
   /** The secret the site's form guard was given; without it forms are not probed. */
   probeSecret?: string;
+  /** The time of the audit, for rules that depend on the date. Defaults to now. */
+  now?: Date;
 }
 
 export interface AuditResult {
@@ -48,7 +51,8 @@ export async function audit(options: AuditOptions): Promise<AuditResult> {
     if (options.timeoutMs) probe.timeoutMs = options.timeoutMs;
     site.formProbes = await probeForms(site, probe);
   }
-  const thresholds = { ...DEFAULT_THRESHOLDS, ...options.thresholds };
+  site.icons = await inspectIcons(site, options);
+  const context = { thresholds: { ...DEFAULT_THRESHOLDS, ...options.thresholds }, now: options.now ?? new Date() };
   const ignorePaths = options.ignorePaths ?? [];
 
   const findings: Finding[] = [];
@@ -57,7 +61,7 @@ export async function audit(options: AuditOptions): Promise<AuditResult> {
     for (const rule of pack.rules) {
       const setting = options.rules?.[rule.id] ?? rule.severity;
       if (setting === 'off') continue;
-      for (const { detail, ...problem } of rule.check(site, thresholds)) {
+      for (const { detail, ...problem } of rule.check(site, context)) {
         if (ignored(problem.path, ignorePaths)) continue;
         const key = `${rule.id}|${problem.path}|${detail ?? ''}`;
         if (seen.has(key)) continue;

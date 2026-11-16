@@ -19,7 +19,13 @@ export interface Rule {
   severity: Severity;
   /** One line for the rule reference. */
   summary: string;
-  check(site: Site, thresholds: Thresholds): Problem[];
+  check(site: Site, context: RuleContext): Problem[];
+}
+
+export interface RuleContext {
+  thresholds: Thresholds;
+  /** The time of the audit; rules that depend on the date read it from here. */
+  now: Date;
 }
 
 export interface RulePack {

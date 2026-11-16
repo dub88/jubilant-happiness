@@ -1,0 +1,202 @@
+import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
+import { test, type TestContext } from 'node:test';
+import { audit, type AuditOptions, type AuditResult } from '../src/audit.ts';
+import { DEFAULT_FAVICONS } from '../src/icons.ts';
+import { jsonLd, page, serve, sitemap, type Route, type Routes } from './helpers.ts';
+
+const NOW = new Date('2026-06-15T12:00:00Z');
+
+/** A one-page site whose home page has the given body; everything else about it is in order. */
+function homeRoutes(origin: string, body: string, extra: Record<string, Route> = {}, head = ''): ReturnType<Routes> {
+  return {
+    '/': page({
+      origin,
+      path: '/',
+      head: jsonLd({ '@context': 'https://schema.org', '@type': 'Bakery', name: 'Example Bakery' }) + head,
+      body: `<h1>Example Bakery</h1>${body}`,
+    }),
+    '/hero.jpg': { headers: { 'content-type': 'image/jpeg' }, body: 'jpeg' },
+    '/robots.txt': `Sitemap: ${origin}/sitemap.xml\n`,
+    '/sitemap.xml': sitemap([`${origin}/`]),
+    ...extra,
+  };
+}
+
+async function auditHome(t: TestContext, build: Routes, options: Partial<AuditOptions> = {}): Promise<AuditResult> {
+  const server = await serve(build);
+  t.after(() => server.close());
+  return audit({ url: server.origin, now: NOW, ...options });
+}
+
+const found = (result: AuditResult): string[] => result.findings.map((finding) => `${finding.rule}: ${finding.message}`);
+const on = (result: AuditResult, rule: string): string[] =>
+  result.findings.filter((finding) => finding.rule === rule).map((finding) => finding.message);
+
+test('ordinary copy is not slop', async (t) => {
+  const body = `
+    <p>We bake sourdough, rye and seeded loaves every morning. Call us on (970) 242-1234 or email hello@example-bakery.com.</p>
+    <p>Find us at 123 Main Street, Springfield. We are committed to using local flour.</p>
+    <img src="/hero.jpg" alt="Loaves cooling on a rack">
+    <a href="https://www.instagram.com/examplebakery">Instagram</a>
+    <a href="#" role="button" aria-expanded="false">Menu</a>
+    <p>Rated ⭐ 4.9 by our customers.</p>
+    <pre><code>{{ template }} info@example.com [object Object]</code></pre>
+    <footer>© 2019–2026 Example Bakery. Copyright law protects our recipes since 1998.</footer>`;
+  const result = await auditHome(t, (origin) => homeRoutes(origin, body));
+  assert.deepEqual(found(result), []);
+});
+
+test('placeholder and unfinished content', async (t) => {
+  const body = `
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</p>
+    <p>Welcome to [Your Company Name], where your tagline goes here.</p>
+    <p>Hello {{ customer.name }}, your order is [object Object].</p>
+    <p>Email us at info@example.com or call (555) 123-4567. Visit 12 High Road, Anytown.</p>
+    <img src="https://placehold.co/600x400" alt="placeholder">
+    <img src="/placeholder.svg?height=300&width=400" alt="Team at work">
+    <img src="/hero.jpg" alt="IMG_2041.jpg">
+    <p>Get started by editing app/page.tsx.</p>`;
+  const result = await auditHome(t, (origin) => homeRoutes(origin, body));
+
+  assert.deepEqual(on(result, 'placeholder-text'), [
+    'Placeholder text is still on the page: "[Your Company Name], where your tagline goes here."',
+    'Placeholder text is still on the page: "Lorem ipsum dolor sit amet, consectetur adipiscing…"',
+    'Placeholder text is still on the page: "tagline goes here."',
+  ]);
+  assert.deepEqual(on(result, 'unrendered-template'), [
+    'Unrendered template output is visible: "[object Object]."',
+    'Unrendered template output is visible: "{{ customer.name }}, your order is [object Object]."',
+  ]);
+  assert.deepEqual(on(result, 'placeholder-contact'), [
+    'A placeholder address is shown: "Anytown."',
+    'A placeholder email is shown: "info@example.com or call (555) 123-4567. Visit 12 High…"',
+    'A placeholder phone is shown: "(555) 123-4567. Visit 12 High Road, Anytown."',
+  ]);
+  assert.deepEqual(on(result, 'placeholder-image'), [
+    'Placeholder image: /placeholder.svg?height=300&width=400',
+    'Placeholder image: https://placehold.co/600x400',
+  ]);
+  assert.deepEqual(on(result, 'generic-alt'), [
+    'Alt text "IMG_2041.jpg" does not describe the image /hero.jpg.',
+    'Alt text "placeholder" does not describe the image https://placehold.co/600x400.',
+  ]);
+  assert.deepEqual(on(result, 'starter-content'), ['The page still shows Next.js starter content: "Get started by editing app/page.tsx."']);
+  for (const finding of result.findings) {
+    assert.equal(finding.severity, finding.rule === 'generic-alt' ? 'warning' : 'error', finding.rule);
+    assert.equal(finding.pack, 'slop');
+  }
+});
+
+test('default and broken metadata', async (t) => {
+  const result = await auditHome(t, (origin) => ({
+    ...homeRoutes(origin, '<a href="/new">New</a><a href="/post">Post</a>'),
+    '/new': page({ origin, path: '/new', title: 'Create Next App', description: 'Generated by create next app' }),
+    '/post': page({ origin, path: '/post', title: 'undefined | Example Bakery in Springfield' }),
+  }));
+  assert.deepEqual(on(result, 'default-metadata'), [
+    'The meta description is a starter default: "Generated by create next app".',
+    'The title is a starter default: "Create Next App".',
+  ]);
+  assert.deepEqual(on(result, 'unrendered-template'), [
+    'The title contains a missing value: "undefined | Example Bakery in Springfield"',
+  ]);
+});
+
+test('links that go nowhere and social links without a profile', async (t) => {
+  const body = `
+    <a href="#">Learn more</a><a href="">Get started</a><a href="javascript:void(0)" aria-label="Open chat"></a>
+    <a href="#pricing">Pricing</a><a href="#" onclick="openMenu()">Menu</a><a href="#">Back to top</a>
+    <a href="https://facebook.com">Facebook</a><a href="https://www.instagram.com/">Instagram</a>
+    <a href="https://x.com/examplebakery">X</a><a href="https://github.com/">GitHub</a>
+    <h2 id="pricing">Pricing</h2>`;
+  const result = await auditHome(t, (origin) => homeRoutes(origin, body));
+  assert.deepEqual(on(result, 'dead-link'), [
+    'The link "Get started" goes nowhere.',
+    'The link "Learn more" goes nowhere.',
+    'The link "Open chat" goes nowhere.',
+  ]);
+  assert.deepEqual(on(result, 'placeholder-social-link'), [
+    'A social link points at https://facebook.com, not at a profile.',
+    'A social link points at https://github.com, not at a profile.',
+    'A social link points at https://www.instagram.com, not at a profile.',
+  ]);
+});
+
+test('stock phrases are reported once a page has several, and the limit is configurable', async (t) => {
+  const two = '<p>We are committed to quality, and our rye is second to none.</p>';
+  const many = `${two}<p>Elevate your breakfast and unlock the full potential of sourdough. Look no further!</p>`;
+  assert.deepEqual(found(await auditHome(t, (origin) => homeRoutes(origin, two))), []);
+
+  const result = await auditHome(t, (origin) => homeRoutes(origin, many));
+  assert.deepEqual(found(result), [
+    'stock-phrases: The page uses 5 stock phrases: "unlock the full potential", "elevate your", "look no further", "we are committed to", "second to none".',
+  ]);
+  assert.deepEqual(found(await auditHome(t, (origin) => homeRoutes(origin, many), { thresholds: { stockPhrases: 6 } })), []);
+  assert.deepEqual(on(await auditHome(t, (origin) => homeRoutes(origin, two), { thresholds: { stockPhrases: 2 } }), 'stock-phrases').length, 1);
+});
+
+test('emoji used as icons', async (t) => {
+  const cards = `
+    <div class="card"><span class="icon">🚀</span><h3>Fast</h3></div>
+    <div class="card"><span class="icon">🔒</span><h3>Secure</h3></div>
+    <h2>✨ Why choose us</h2>
+    <svg><title>🚀</title></svg>`;
+  const result = await auditHome(t, (origin) => homeRoutes(origin, cards));
+  assert.deepEqual(found(result), ['emoji-icons: 3 emoji are used as icons or in headings: 🚀 🔒 ✨']);
+
+  const sparing = '<p>Open daily 🕗 7am to 3pm.</p><span>🥖</span><span>🥐</span>';
+  assert.deepEqual(found(await auditHome(t, (origin) => homeRoutes(origin, sparing))), []);
+});
+
+test('copyright year', async (t) => {
+  const cases: [footer: string, expected: string[]][] = [
+    ['<footer>© 2024 Example Bakery</footer>', ['The copyright year is 2024.']],
+    ['<footer>&copy; Example Bakery 2025. All rights reserved.</footer>', ['The copyright year is 2025.']],
+    ['<footer>Copyright 2019-2023 Example Bakery</footer>', ['The copyright year is 2023.']],
+    ['<footer>(c) 2022</footer>', ['The copyright year is 2022.']],
+    ['<footer>© 2026 Example Bakery</footer>', []],
+    ['<footer>© 2019–2026 Example Bakery</footer>', []],
+    ['<footer>© Example Bakery</footer><p>Founded in 2011.</p>', []],
+    ['<p>(a) flour (b) water (c) 2019 was our first year.</p><p>Copyright law changed in 1998.</p><footer>© 2026</footer>', []],
+  ];
+  for (const [footer, expected] of cases) {
+    const result = await auditHome(t, (origin) => homeRoutes(origin, footer));
+    assert.deepEqual(on(result, 'stale-copyright'), expected, footer);
+  }
+  // The same notice is current a year earlier.
+  const earlier = await auditHome(t, (origin) => homeRoutes(origin, '<footer>© 2025 Example Bakery</footer>'), {
+    now: new Date('2025-12-31T23:00:00Z'),
+  });
+  assert.deepEqual(found(earlier), []);
+});
+
+test('favicons: missing, an app shell in its place, declared, and a framework default', async (t) => {
+  const missing = await auditHome(t, (origin) => homeRoutes(origin, '', { '/favicon.ico': { status: 404 } }));
+  assert.deepEqual(found(missing), ['favicon-missing: The favicon /favicon.ico returns 404.']);
+
+  const shell = await auditHome(t, (origin) => homeRoutes(origin, '', { '/favicon.ico': '<html><body>app shell</body></html>' }));
+  assert.deepEqual(found(shell), ['favicon-missing: The favicon /favicon.ico returns 404.']);
+
+  // A declared icon is used instead of /favicon.ico, which may then be absent.
+  const icon: Route = { headers: { 'content-type': 'image/svg+xml' }, body: '<svg xmlns="http://www.w3.org/2000/svg"/>' };
+  const declared = await auditHome(t, (origin) =>
+    homeRoutes(origin, '', { '/favicon.ico': { status: 404 }, '/icon.svg': icon }, '<link rel="icon" href="/icon.svg">'),
+  );
+  assert.deepEqual(found(declared), []);
+  const inline = await auditHome(t, (origin) =>
+    homeRoutes(origin, '', { '/favicon.ico': { status: 404 } }, '<link rel="shortcut icon" href="data:image/png;base64,AAAA">'),
+  );
+  assert.deepEqual(found(inline), []);
+
+  // Stand in for a starter template's icon: register this test icon's hash as a known default.
+  const starter = 'bytes of a starter template icon';
+  const hash = createHash('sha256').update(starter).digest('hex');
+  DEFAULT_FAVICONS.set(hash, 'Example Framework');
+  t.after(() => DEFAULT_FAVICONS.delete(hash));
+  const untouched = await auditHome(t, (origin) =>
+    homeRoutes(origin, '', { '/favicon.ico': { headers: { 'content-type': 'image/x-icon' }, body: starter } }),
+  );
+  assert.deepEqual(found(untouched), ['default-favicon: The favicon is the default Example Framework icon.']);
+  assert.equal(untouched.findings[0]?.path, '/favicon.ico');
+});

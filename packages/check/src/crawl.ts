@@ -1,6 +1,6 @@
 import { Fetcher } from './fetch.ts';
 import { parsePage } from './parse.ts';
-import type { FetchResult, FormProbe, PageData, Ref, UrlClass } from './types.ts';
+import type { FetchResult, FormProbe, IconResult, PageData, Ref, UrlClass } from './types.ts';
 
 export interface CrawlOptions {
   /** Where to start. Redirects from this URL are followed to find the site's real origin. */
@@ -50,6 +50,8 @@ export class Site {
   readonly sitemapRefs: Ref[] = [];
   /** What probing the site's form endpoints found. Empty unless forms were configured. */
   formProbes: FormProbe[] = [];
+  /** The site's favicons and what fetching them found. */
+  icons: IconResult[] = [];
   robotsFound = false;
   sitemapFound = false;
   /** True when the page limit stopped the crawl before every page was read. */
