@@ -1,0 +1,30 @@
+# Audit every Vercel preview deployment and fail the check when the pull
+# request introduces a problem that production does not already have.
+#
+# Copy to .github/workflows/ in the site's repository and set the baseline.
+# If the project uses Deployment Protection, create a "Protection Bypass for
+# Automation" secret in Vercel and store it as a repository secret.
+name: Site audit
+
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      !contains(github.event.deployment.environment, 'Production')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.deployment.sha }}
+      - uses: dub88/jubilant-happiness@main # pin to a commit SHA for stability
+        with:
+          url: ${{ github.event.deployment_status.target_url }}
+          baseline: https://www.example.com
+          headers: |
+            x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}

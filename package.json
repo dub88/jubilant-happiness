@@ -1,0 +1,17 @@
+{
+  "name": "plumbline-monorepo",
+  "private": true,
+  "description": "A standard for client sites, a checker that enforces it, and drop-in parts that make sites pass.",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm test --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
+}

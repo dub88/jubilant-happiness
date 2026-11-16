@@ -1,0 +1,29 @@
+{
+  "name": "@plumbline/check",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Crawl a preview or live site and report the SEO problems a pull request introduced.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "plumbline": "dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\""
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "node-html-parser": "^9.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^7.0.2"
+  }
+}

@@ -1,0 +1,22 @@
+# Audit every live site listed in plumbline.config.json once a week.
+#
+# Copy to .github/workflows/ in a repository that holds the config file
+# (see examples/plumbline.config.json).
+name: Weekly site audit
+
+on:
+  schedule:
+    - cron: '17 14 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dub88/jubilant-happiness@main # pin to a commit SHA for stability
+        with:
+          fail-on: warning

@@ -1,0 +1,77 @@
+name: plumbline
+description: Audit a preview or live site and fail on the SEO problems a pull request introduced.
+branding:
+  icon: check-square
+  color: gray-dark
+
+inputs:
+  url:
+    description: The site to audit, usually the preview deployment's URL. Leave empty to audit the sites in the config file.
+    required: false
+  baseline:
+    description: Production URL to compare against. Only problems production does not already have are reported.
+    required: false
+  canonical-origin:
+    description: The origin the site calls itself, when auditing a preview without a baseline.
+    required: false
+  src:
+    description: Source directory, so findings are traced to file and line. Needs the repository checked out.
+    required: false
+    default: .
+  fail-on:
+    description: error, warning or none. Defaults to warning with a baseline and error without.
+    required: false
+  max-pages:
+    description: Stop reading new pages after this many.
+    required: false
+  ignore:
+    description: Paths whose findings are dropped, one per line. A trailing * matches a prefix.
+    required: false
+  headers:
+    description: 'Extra request headers for the audited site, one "name: value" per line, e.g. a preview-protection bypass token.'
+    required: false
+  config:
+    description: Path to a plumbline config file.
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Build plumbline
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: npm ci --no-audit --no-fund --silent && npm run build --silent
+
+    - name: Audit
+      shell: bash
+      env:
+        PLUMBLINE_URL: ${{ inputs.url }}
+        PLUMBLINE_BASELINE: ${{ inputs.baseline }}
+        PLUMBLINE_CANONICAL_ORIGIN: ${{ inputs.canonical-origin }}
+        PLUMBLINE_SRC: ${{ inputs.src }}
+        PLUMBLINE_FAIL_ON: ${{ inputs.fail-on }}
+        PLUMBLINE_MAX_PAGES: ${{ inputs.max-pages }}
+        PLUMBLINE_IGNORE: ${{ inputs.ignore }}
+        PLUMBLINE_HEADERS: ${{ inputs.headers }}
+        PLUMBLINE_CONFIG: ${{ inputs.config }}
+      run: |
+        args=(check)
+        [ -n "$PLUMBLINE_URL" ] && args+=("$PLUMBLINE_URL")
+        [ -n "$PLUMBLINE_BASELINE" ] && args+=(--baseline "$PLUMBLINE_BASELINE")
+        [ -n "$PLUMBLINE_CANONICAL_ORIGIN" ] && args+=(--canonical-origin "$PLUMBLINE_CANONICAL_ORIGIN")
+        [ -n "$PLUMBLINE_SRC" ] && args+=(--src "$PLUMBLINE_SRC")
+        [ -n "$PLUMBLINE_FAIL_ON" ] && args+=(--fail-on "$PLUMBLINE_FAIL_ON")
+        [ -n "$PLUMBLINE_MAX_PAGES" ] && args+=(--max-pages "$PLUMBLINE_MAX_PAGES")
+        [ -n "$PLUMBLINE_CONFIG" ] && args+=(--config "$PLUMBLINE_CONFIG")
+        while IFS= read -r line; do
+          [ -n "$line" ] && args+=(--ignore "$line")
+        done <<< "$PLUMBLINE_IGNORE"
+        while IFS= read -r line; do
+          [ -n "$line" ] && args+=(--header "$line")
+        done <<< "$PLUMBLINE_HEADERS"
+
+        report="$RUNNER_TEMP/plumbline-report.md"
+        code=0
+        node "$GITHUB_ACTION_PATH/packages/check/dist/cli.js" "${args[@]}" --markdown "$report" || code=$?
+        [ -f "$report" ] && cat "$report" >> "$GITHUB_STEP_SUMMARY"
+        exit "$code"

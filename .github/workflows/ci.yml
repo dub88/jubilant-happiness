@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  action:
+    name: Run the action on the example site
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Serve the example site
+        run: |
+          python3 -m http.server 8080 --directory examples/site &
+          sleep 1
+      - uses: ./
+        with:
+          url: http://localhost:8080/
+          canonical-origin: https://www.example.com
+          src: examples/site
+          fail-on: warning
