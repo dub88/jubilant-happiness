@@ -1,4 +1,4 @@
-# @plumbline/forms
+# plumbline-forms
 
 Spam screening for contact forms, with no third-party service and no dependencies. It works anywhere a route receives a web `Request`: Next.js route handlers, Astro endpoints, Vercel and Cloudflare functions.
 
@@ -24,13 +24,13 @@ The package is not on npm yet. Until it is, copy the built files into your site 
 skills/site-standard/scripts/vendor-forms.sh path/to/your-site/src/lib/plumbline-forms
 ```
 
-and import from that folder (`.../plumbline-forms/index.js` and `.../plumbline-forms/client.js`) where the examples below say `@plumbline/forms`.
+and import from that folder (`.../plumbline-forms/index.js` and `.../plumbline-forms/client.js`) where the examples below say `plumbline-forms`.
 
 ## Server
 
 ```ts
 // app/api/contact/route.ts
-import { createFormGuard } from '@plumbline/forms';
+import { createFormGuard } from 'plumbline-forms';
 
 const guard = createFormGuard({
   probeSecret: process.env.PLUMBLINE_PROBE_SECRET,
@@ -81,7 +81,7 @@ For a form submitted with `fetch`:
 
 ```tsx
 import { useEffect, useRef, useState } from 'react';
-import { startFormTimer, type FormTimer } from '@plumbline/forms/client';
+import { startFormTimer, type FormTimer } from 'plumbline-forms/client';
 
 const timer = useRef<FormTimer | null>(null);
 const [website, setWebsite] = useState('');
@@ -108,7 +108,7 @@ For a plain HTML form, one call adds both fields:
 
 ```html
 <script type="module">
-  import { guardHtmlForm } from '@plumbline/forms/client';
+  import { guardHtmlForm } from 'plumbline-forms/client';
   guardHtmlForm(document.querySelector('#contact-form'));
 </script>
 ```

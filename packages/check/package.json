@@ -1,5 +1,5 @@
 {
-  "name": "@plumbline/check",
+  "name": "plumbline-check",
   "version": "0.1.0",
   "description": "Audit a client website for SEO fundamentals, form spam defences and unfinished content, and report only what a change introduced.",
   "license": "MIT",

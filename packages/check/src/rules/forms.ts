@@ -46,7 +46,7 @@ function unansweredProblem(probe: FormProbe): Problem | undefined {
     return {
       path: probe.endpoint,
       message: `The form endpoint did not answer the probe: ${probe.detail}.`,
-      fix: 'Protect the endpoint with @plumbline/forms and give it the same probe secret.',
+      fix: 'Protect the endpoint with plumbline-forms and give it the same probe secret.',
     };
   }
   return undefined;

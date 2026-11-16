@@ -1,5 +1,5 @@
 {
-  "name": "@plumbline/forms",
+  "name": "plumbline-forms",
   "version": "0.1.0",
   "description": "Spam screening for contact forms: same-site check, honeypot, time trap and content flags, with no third-party service.",
   "license": "MIT",

@@ -128,10 +128,10 @@ Inputs mirror the command-line options: `url`, `baseline`, `canonical-origin`, `
 
 ## Form spam
 
-Contact forms on small sites attract bots within days. [`@plumbline/forms`](packages/forms) screens submissions with the checks a real visitor never trips (a honeypot field, a same-site check and a minimum fill time), flags sales pitches without discarding them, and leaves a paid bot-detection service as an optional last step so it is only billed for submissions the free checks let through.
+Contact forms on small sites attract bots within days. [`plumbline-forms`](packages/forms) screens submissions with the checks a real visitor never trips (a honeypot field, a same-site check and a minimum fill time), flags sales pitches without discarding them, and leaves a paid bot-detection service as an optional last step so it is only billed for submissions the free checks let through.
 
 ```ts
-import { createFormGuard } from '@plumbline/forms';
+import { createFormGuard } from 'plumbline-forms';
 
 const guard = createFormGuard({ probeSecret: process.env.PLUMBLINE_PROBE_SECRET });
 

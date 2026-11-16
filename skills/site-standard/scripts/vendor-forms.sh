@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Copy the plumbline form guard into a site, as plain JavaScript with type
-# declarations. Use this until @plumbline/forms is published to npm.
+# declarations. Use this until plumbline-forms is published to npm.
 #
 #   vendor-forms.sh <destination-directory>     e.g. src/lib/plumbline-forms
 #

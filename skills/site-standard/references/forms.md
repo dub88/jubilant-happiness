@@ -19,7 +19,7 @@ Run a paid bot-detection service, if the site has one, after these checks, so it
 
 ## Using the plumbline guard
 
-`@plumbline/forms` implements points 1 to 6 and 8 for any route that receives a web `Request` (Next.js route handlers, Astro endpoints, Vercel and Cloudflare functions). It has no dependencies.
+`plumbline-forms` implements points 1 to 6 and 8 for any route that receives a web `Request` (Next.js route handlers, Astro endpoints, Vercel and Cloudflare functions). It has no dependencies.
 
 Until it is published to npm, copy it into the site:
 
